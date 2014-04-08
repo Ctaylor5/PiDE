@@ -1,0 +1,7 @@
+class Newclass:
+    def __init__(self, x):
+        self.x = x
+
+    def ourprint(self):
+        print self.x
+        return 1

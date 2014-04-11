@@ -18,6 +18,7 @@ from idlelib.configHandler import idleConf
 from idlelib import aboutDialog, textView, configDialog
 from idlelib import macosxSupport
 
+
 # The default tab setting for a Text widget, in average-width characters.
 TK_TABWIDTH_DEFAULT = 8
 
@@ -152,7 +153,7 @@ class EditorWindow(object):
         currentTheme=idleConf.CurrentTheme()
         self.flist = flist
         root = root or flist.root
-        self.root = root
+        self.root = root        
         try:
             sys.ps1
         except AttributeError:

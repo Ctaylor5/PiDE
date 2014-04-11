@@ -7,11 +7,31 @@ from idlelib.ScrolledList import ScrolledList
 from idlelib import macosxSupport
 
 
-class Idb(bdb.Bdb):
+class VIdb(bdb.Bdb):
 
     def __init__(self, gui):
         self.gui = gui
         bdb.Bdb.__init__(self)
+
+    def run(self, cmd, globals=None, locals=None):
+        print "Vidb Run"
+        if globals is None:
+            import __main__
+            globals = __main__.__dict__
+        if locals is None:
+            locals = globals
+        self.reset()
+        sys.settrace(self.trace_dispatch)
+        if not isinstance(cmd, types.CodeType):
+            cmd = cmd+'\n'
+        try:
+            exec cmd in globals, locals
+        except bdb.BdbQuit:
+            pass
+        finally:
+            self.quitting = 1
+            sys.settrace(None)
+            # self.set_continue()
 
     def user_line(self, frame):
         if self.in_rpc_code(frame):
@@ -48,13 +68,13 @@ class Idb(bdb.Bdb):
         return message
 
 
-class Debugger:
+class Vis_Debugger:
 
     vstack = vsource = vlocals = vglobals = None
 
     def __init__(self, pyshell, idb=None):
         if idb is None:
-            idb = Idb(self)
+            idb = VIdb(self)
         self.pyshell = pyshell
         self.idb = idb
         self.frame = None
@@ -111,7 +131,7 @@ class Debugger:
             b.pack(side="left")
         #
         self.cframe = cframe = Frame(bframe)
-        self.cframe.pack(side="left")
+        #self.cframe.pack(side="left")
         #
         if not self.vstack:
             self.__class__.vstack = BooleanVar(top)
@@ -137,17 +157,17 @@ class Debugger:
         self.bglobals.grid(row=1, column=1)
         #
         self.status = Label(top, anchor="w")
-        self.status.pack(anchor="w")
+        #self.status.pack(anchor="w")
         self.error = Label(top, anchor="w")
-        self.error.pack(anchor="w", fill="x")
+        #self.error.pack(anchor="w", fill="x")
         self.errorbg = self.error.cget("background")
         #
         self.fstack = Frame(top, height=1)
-        self.fstack.pack(expand=1, fill="both")
+        #self.fstack.pack(expand=1, fill="both")
         self.flocals = Frame(top)
-        self.flocals.pack(expand=1, fill="both")
+        #self.flocals.pack(expand=1, fill="both")
         self.fglobals = Frame(top, height=1)
-        self.fglobals.pack(expand=1, fill="both")
+        #self.fglobals.pack(expand=1, fill="both")
         #
         if self.vstack.get():
             self.show_stack()
@@ -191,14 +211,22 @@ class Debugger:
         for b in self.buttons:
             b.configure(state="normal")
         #
-        self.top.wakeup()
+        print "C I 1"
+        #self.top.wakeup()
+        self.cont()      
         self.root.mainloop()
+        print "C I 2"
+        self.cont()
+        print "C I 3"
         #
         for b in self.buttons:
             b.configure(state="disabled")
         self.status.configure(text="")
         self.error.configure(text="", background=self.errorbg)
         self.frame = None
+        print "C I End"
+
+
 
     def sync_source_line(self):
         frame = self.frame
@@ -289,16 +317,19 @@ class Debugger:
         gv = self.globalsviewer
         frame = self.frame
         if not frame:
+            #print "sv1"
             ldict = gdict = None
         else:
+            #print "sv2"
             ldict = frame.f_locals
             gdict = frame.f_globals
             if lv and gv and ldict is gdict:
                 ldict = None
         if lv:
-            lv.load_dict(ldict, force, self.pyshell.interp.rpcclt)
+            lv.load_dict(ldict, self.pyshell.vis_vars, force, self.pyshell.interp.rpcclt)
         if gv:
-            gv.load_dict(gdict, force, self.pyshell.interp.rpcclt)
+            gv.load_dict(gdict, self.pyshell.vis_vars, force, self.pyshell.interp.rpcclt)
+        
 
     def set_breakpoint_here(self, filename, lineno):
         self.idb.set_break(filename, lineno)
@@ -431,11 +462,14 @@ class NamespaceViewer:
         canvas["yscrollcommand"] = vbar.set
         self.subframe = subframe = Frame(canvas)
         self.sfid = canvas.create_window(0, 0, window=subframe, anchor="nw")
-        self.load_dict(dict)
+        self.load_dict(dict,{})
 
     dict = -1
 
-    def load_dict(self, dict, force=0, rpc_client=None):
+    def load_dict(self, dict, vis_ref, force=0, rpc_client=None):
+        print "load_dict Check", self.repr.repr(self.master)
+        print self.repr.repr(self.subframe)
+
         if dict is self.dict and not force:
             return
         subframe = self.subframe
@@ -450,14 +484,15 @@ class NamespaceViewer:
             names = dict.keys()
             names.sort()
             row = 0
-            #print names 
+            ind = 0
             for name in names:
                 value = dict[name]
                 svalue = self.repr.repr(value)# repr(value)
                 # Strip extra quotes caused by calling repr on the (already)
                 # repr'd value sent across the RPC interface:
                 #print "Name:",name,"Value:", value
-                #print "1Repr:",self.repr.repr(value)                
+                #print "1Repr:",self.repr.repr(value)         
+                
                 if rpc_client:
                     svalue = svalue[1:-1]
                 l = Label(subframe, text=name)
@@ -465,9 +500,18 @@ class NamespaceViewer:
                 l = Entry(subframe, width=0, borderwidth=0)
                 l.insert(0, svalue)
                 l.grid(row=row, column=1, sticky="nw")
-                row = row+1
+                row = row+1                
+            for x in vis_ref.keys():
+                    #print x
+                    #self.vis_list.delete(ind)
+                    #self.vis_list.insert(ind, "{key} = {val}".format(key=x, val=value))
+                    try:
+                        vis_ref[x] = repr(dict[x])
+                    except KeyError:
+                        print "WRONG!"                    
         self.dict = dict
         # XXX Could we use a <Configure> callback for the following?
+        #subframe.update()
         subframe.update_idletasks() # Alas!
         width = subframe.winfo_reqwidth()
         height = subframe.winfo_reqheight()

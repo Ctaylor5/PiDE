@@ -13,8 +13,14 @@ import traceback
 import types
 import io
 import linecache
+
+#import pdb
+import compiler
+
 from code import InteractiveInterpreter
 from platform import python_version
+
+import inspect
 from parse import *
 
 try:
@@ -35,8 +41,11 @@ from idlelib.configHandler import idleConf
 from idlelib import idlever
 from idlelib import rpc
 from idlelib import Debugger
+from idlelib import Vis_Debugger
 from idlelib import RemoteDebugger
 from idlelib import macosxSupport
+
+from RemoteDebugger import IdbAdapter
 
 IDENTCHARS = string.ascii_letters + string.digits + "_"
 HOST = '127.0.0.1' # python execution server on localhost loopback
@@ -391,6 +400,7 @@ class ModifiedInterpreter(InteractiveInterpreter):
         self.port = PORT
         self.original_compiler_flags = self.compile.compiler.flags
         self.vis_compiled=[]
+
 
     _afterid = None
     rpcclt = None
@@ -773,8 +783,7 @@ class ModifiedInterpreter(InteractiveInterpreter):
 
     def runcode(self, code):
         "Override base class method"
-        self.vis_compiled.append(code)
-
+        self.vis_compiled.append(code)        
         if self.tkconsole.executing:
             self.interp.restart_subprocess()
         self.checklinecache()
@@ -886,6 +895,8 @@ class PyShell(OutputWindow):
             if ms[2][0] != "shell":
                 ms.insert(2, ("shell", "She_ll"))
         self.interp = ModifiedInterpreter(self)
+        import repr
+        self.repr = repr.Repr()
 
         self.in_lines=[]
         self.vis_lines = []
@@ -902,6 +913,8 @@ class PyShell(OutputWindow):
         OutputWindow.__init__(self, flist, None, None)
         #
 ##        self.config(usetabs=1, indentwidth=8, context_use_ps1=1)
+        self.vbugger=Vis_Debugger.Vis_Debugger(self)
+
         self.usetabs = True
         # indentwidth must be 8 when using tabs.  See note in EditorWindow:
         self.indentwidth = 8
@@ -1260,7 +1273,9 @@ class PyShell(OutputWindow):
             i = i-1
         line = line[:i]
         self.in_lines.append(line)
+        
         more = self.interp.runsource(line)
+
         #self.vis_strip(self.interp.vis_compiled)
         if more==False:
             self.vis_parse(line)
@@ -1337,9 +1352,15 @@ class PyShell(OutputWindow):
                 raise KeyboardInterrupt
 
     def update_vis(self):
-        print self.vis_vars
+        print"\nvis_vars"
+        #print self.vis_vars        
+        self.vbugger.run(self.interp.vis_compiled[len(self.interp.vis_compiled)-1], self.interp.locals)
+        self.vbugger.show_variables()
+        self.vbugger.cont()
         ind=0
         for x in self.vis_vars.keys():
+            #print self.interp.vis_compiled[ind]
+            #self.vbugger.run(self.interp.vis_compiled[ind], self.interp.locals)        
             print ind
             self.vis_list.delete(ind)
             self.vis_list.insert(ind, "{key} = {val}".format(key=x, val=self.vis_vars[x]))
@@ -1352,47 +1373,72 @@ class PyShell(OutputWindow):
            self.vis_vars.append('{banana.co_names},{banana.co_consts}'.format(banana=c))
          
     def vis_parse(self, line):
+        print "\nvis_parse"
         print line
         x = parse("{}={}",line)
         if x != None:
-            self.add_tuple(x)        
+            self.add_tuple(x)
+        else:
+            self.update_vis()
 
     def add_tuple(self, xs):
+        print "\nadd_tuples"
         print xs
-        print xs[0], xs[1]
+        print xs[0], xs[1]        
+        #self.vis_feed(self.interp.locals)
         name = string.strip(xs[0])
         value = string.strip(xs[1])
+        #print eval(value, self.text.locals)
         if self.vis_vars.has_key(value):
-            self.vis_vars[name]=self.vis_vars[value]
+            self.vis_vars[name]=eval(value)
         else:
             self.vis_vars[name]=value
         self.update_vis()
 
 
-    def vis_feed(self, locals, tags=()):
+    def vis_feed(self, locals):
+        print "\nvis_feed"
+        for x in self.in_lines:
+            print eval(x)
+        for x in self.interp.vis_compiled:
+            exec x in self.interp.locals
+            #print pdb.run(x)
+
+        '''frame=self.text_frame
+        vis_fid=id(frame)
+        ldict = IdbAdapter.frame_locals(vis_fid)
+        ndict = self.interp.rpcclt.__getattribute__
+        #print ndict        
+        #ldict = inspect.getmembers(frame,f_globals)
         if not dict:
             print "ok"
         else:
             #OutputWindow.vis_write(self, "||", tags, "iomark")
-            print "1STARTBUTTS!!"
-            print self.interp.locals.RemoteDebugger.locals
-            print self.vis_lines
-            x=0            
-            for c in self.interp.vis_compiled:
-                keys = dir(c).keys()
-                for key in keys:
-                    print c[key]
+                       
+            #print self.vis_lines
+            names = ldict.keys()
+            names.sort() 
+            x=0
+            print names
+            for name in names:
+                value = ldict[name]
+                print "Name:",name,"Value:", value
+                print "1Repr:",self.repr.repr(value)
+                #keys = dir(c).keys()
+                #for key in keys:
+                 #   print c[key]
                 #print c.co_argcount
                 #print '{banana.co_names},{banana.co_consts}'.format(banana=c)       
-                print str(x), c.co_names
-                print c.co_consts
+                #print str(x), c.co_names
+                #print c.co_consts
                 #for v in c.co_consts:
                     #print v
                 x=x+1
+        print self.vdb.run(self.in_lines[0])
             #print self.interp.locals
-            names = self.flist.source.keys()
-            names.sort()     
-            print names
+            #names = self.flist.source.keys()
+            #names.sort()     
+            #print names
 
             #print '2'
                     
@@ -1404,7 +1450,7 @@ class PyShell(OutputWindow):
                 #temp = "%s" % value
                 #OutputWindow.vis_write(self, temp, tags, "iomark")
                 #OutputWindow.vis_write(self, "%s", tags, "iomark")
-                #OutputWindow.vis_write(self, "pizza", tags, "iomark")   
+                #OutputWindow.vis_write(self, "pizza", tags, "iomark")  '''
 
     def rmenu_check_cut(self):
         try:

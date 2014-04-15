@@ -173,8 +173,11 @@ class EditorWindow(object):
                 'recent-files.lst')
         self.text_frame = text_frame = Frame(top)
         self.vis_text_frame= vis_text_frame = Frame(top)
+        self.vis_console_frame= vis_console_frame = Frame(top)
+        vis_console_frame.pack(side = BOTTOM)
         self.vbar = vbar = Scrollbar(text_frame, name='vbar')
         self.vis_vbar = vis_vbar = Scrollbar(vis_text_frame, name='vis_vbar')
+        self.vis_console = vis_console = Scrollbar(vis_console_frame, name='vis_console')
         self.width = idleConf.GetOption('main','EditorWindow','width', type='int')
         text_options = {
                 'name': 'text',
@@ -190,9 +193,20 @@ class EditorWindow(object):
                 'height': idleConf.GetOption('main', 'EditorWindow', 'height', type='int')}
         vis_list_options = {
                 'name': 'vis_list',
-                'width': 50,
+                'width': 25,
                 'borderwidth': 5,
                 'height': idleConf.GetOption('main', 'EditorWindow', 'height', type='int')}
+        vis_console_text_options = {
+                'name': 'vis_console_text',
+                'padx': 5,
+                'wrap': 'none',
+                'width': self.width,
+                'height': idleConf.GetOption('main', 'EditorWindow', 'height', type='int')}
+        vis_console_list_options = {
+                'name': 'vis_console_list',
+                'width': 200,
+                'borderwidth': 5,
+                'height': 8}        
         if TkVersion >= 8.5:
             # Starting with tk 8.5 we have to set the new tabstyle option
             # to 'wordprocessor' to achieve the same display of tabs as in
@@ -200,7 +214,10 @@ class EditorWindow(object):
             text_options['tabstyle'] = 'wordprocessor'
         self.text = text = MultiCallCreator(Text)(text_frame, **text_options)
         self.vis_text = vis_text = MultiCallCreator(Text)(vis_text_frame, **vis_text_options)
-        self.vis_list = vis_list = Listbox(vis_text_frame, **vis_list_options)      
+        self.vis_list = vis_list = Listbox(vis_text_frame, **vis_list_options)
+        self.vis_console_text = vis_console_text = MultiCallCreator(Text)(vis_console_frame, **vis_console_text_options)
+        self.vis_console_list = vis_console_list = Listbox(vis_console_frame, **vis_console_list_options)
+        
         self.top.focused_widget = self.text
 
         self.createmenubar()
@@ -273,6 +290,10 @@ class EditorWindow(object):
         vis_vbar.pack(side=RIGHT, fill=Y)
         vis_text['yscrollcommand'] = vis_vbar.set
 
+        vis_console['command'] = vis_console_text.yview
+        vis_console.pack(side=RIGHT, fill=Y)
+        vis_console_text['yscrollcommand'] = vis_console.set
+
         fontWeight = 'normal'
         if idleConf.GetOption('main', 'EditorWindow', 'font-bold', type='bool'):
             fontWeight='bold'
@@ -281,9 +302,14 @@ class EditorWindow(object):
                                              'font-size', type='int'),
                           fontWeight))
         text_frame.pack(side=LEFT, fill=BOTH, expand=1)
-        vis_text_frame.pack(side=RIGHT, fill=BOTH, expand=1)
+        vis_text_frame.pack(side=LEFT, fill=BOTH, expand=1)
+        #vis_console_frame.pack(side=BOTTOM, fill=BOTH, expand=1)
+        
+        
         text.pack(side=LEFT, fill=BOTH, expand=1)
         vis_list.pack(side = LEFT, fill=BOTH, expand=1)
+        vis_console_list.pack(side = BOTTOM, fill=BOTH, expand=1)
+        
         #vis_text.pack(side = LEFT, fill=BOTH, expand=1)
         text.focus_set()
 
@@ -1224,6 +1250,14 @@ class EditorWindow(object):
             return first, last
         except TclError:
             return None, None
+    
+    def get_vis_console_selection(self):#indecies for vis_console
+        try:
+            first = self.vis_console_text.index("sel.first")
+            last = self.vis_console_text.index("sel.last")
+            return first, last
+        except TclError:
+            return None, None        
     # Return the text widget's current view of what a tab stop means
     # (equivalent width in spaces).
 
@@ -1342,17 +1376,22 @@ class EditorWindow(object):
     def newline_and_indent_event(self, event):
         text = self.text
         vis_text = self.vis_text
+        vis_console_text = self.vis_console_text
         first, last = self.get_selection_indices()
         vfirst, vlast = self.get_vis_selection_indices()
+        cfirst, clast = self.get_vis_console_selection()
         text.undo_block_start()
         try:
             if first and last:
                 text.delete(first, last)
                 vis_text.delete(vfirst, vlast)
+                vis_console_text.delete(cfirst, clast)
                 text.mark_set("insert", first)
                 vis_text.mark_set("insert", vfirst)
+                vis_console_text.mark_set("insert", cfirst)
             line = text.get("insert linestart", "insert")
             vline = vis_text.get("insert linestart", "insert")
+            cline = vis_console_text.get("insert linestart", "insert")
             i, n = 0, len(line)
             while i < n and line[i] in " \t":
                 i = i+1
@@ -1361,6 +1400,7 @@ class EditorWindow(object):
                 # line; just inject an empty line at the start
                 text.insert("insert linestart", '\n')
                 vis_text.insert("insert linestart", '\n')
+                vis_console_text.insert("insert linestart", '\n')
                 return "break"
             indent = line[:i]
             # strip whitespace before insert point unless it's in the prompt

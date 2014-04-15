@@ -60,8 +60,8 @@ class OutputWindow(EditorWindow):
             except UnicodeError:
                 # some other encoding; let Tcl deal with it
                 pass
-        self.vis_list.insert(END,s)
-        self.vis_list.update()
+        self.vis_console_list.insert(END,s)
+        self.vis_console_list.update()
         #self.vis_text.insert("insert", s, tags)
         #self.vis_text.update()
 

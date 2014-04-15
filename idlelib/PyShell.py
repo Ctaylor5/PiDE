@@ -911,6 +911,7 @@ class PyShell(OutputWindow):
             flist = PyShellFileList(root)
         #
         OutputWindow.__init__(self, flist, None, None)
+        #ConsoleWindow.__init__(self, flist, None, None)
         #
 ##        self.config(usetabs=1, indentwidth=8, context_use_ps1=1)
         self.vbugger=Vis_Debugger.Vis_Debugger(self)
@@ -1327,8 +1328,8 @@ class PyShell(OutputWindow):
     def write(self, s, tags=()):
         try:
             self.text.mark_gravity("iomark", "right")
-            OutputWindow.write(self, s, tags, "iomark")            
-            #OutputWindow.vis_write(self, s, tags, "iomark")
+            #OutputWindow.write(self, s, tags, "iomark")            
+            OutputWindow.vis_write(self, s, tags, "iomark")
             #self.vis_feed(locals, tags)
             self.text.mark_gravity("iomark", "left")
         except:

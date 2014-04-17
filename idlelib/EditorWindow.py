@@ -193,7 +193,7 @@ class EditorWindow(object):
                 'height': idleConf.GetOption('main', 'EditorWindow', 'height', type='int')}
         vis_list_options = {
                 'name': 'vis_list',
-                'width': 25,
+                'width': 50,
                 'borderwidth': 5,
                 'height': idleConf.GetOption('main', 'EditorWindow', 'height', type='int')}
         vis_console_text_options = {

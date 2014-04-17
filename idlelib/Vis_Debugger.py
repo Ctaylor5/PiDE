@@ -213,8 +213,8 @@ class Vis_Debugger:
         #
         print "C I 1"
         #self.top.wakeup()
-        self.cont()      
-        self.root.mainloop()
+        #self.cont()      
+        #self.root.mainloop()
         print "C I 2"
         self.cont()
         print "C I 3"

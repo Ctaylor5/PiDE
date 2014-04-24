@@ -193,7 +193,7 @@ class EditorWindow(object):
                 'height': idleConf.GetOption('main', 'EditorWindow', 'height', type='int')}
         vis_list_options = {
                 'name': 'vis_list',
-                'width': 25,
+                'width': 50,
                 'borderwidth': 5,
                 'height': idleConf.GetOption('main', 'EditorWindow', 'height', type='int'),
                 'yscrollcommand': vis_vbar.set}
@@ -201,14 +201,9 @@ class EditorWindow(object):
                 'name': 'console_text',
                 'padx': 5,
                 'wrap': 'none',
-                'width': self.width,
-                'height': idleConf.GetOption('main', 'EditorWindow', 'height', type='int')}
-        console_list_options = {
-                'name': 'console_list',
                 'width': idleConf.GetOption('main', 'EditorWindow', 'width', type='int'),
-                'borderwidth': 5,
                 'height': 8,
-                'yscrollcommand': console_vbar.set}       
+                'state': DISABLED}      
         if TkVersion >= 8.5:
             # Starting with tk 8.5 we have to set the new tabstyle option
             # to 'wordprocessor' to achieve the same display of tabs as in
@@ -220,7 +215,6 @@ class EditorWindow(object):
         self.vis_text = vis_text = MultiCallCreator(Text)(vis_text_frame, **vis_text_options)
         self.vis_list = vis_list = Listbox(vis_text_frame, **vis_list_options)
         self.console_text = console_text = MultiCallCreator(Text)(console_text_frame, **console_text_options)
-        self.console_list = console_list = Listbox(console_text_frame, **console_list_options)
         
         self.top.focused_widget = self.text
 
@@ -275,7 +269,9 @@ class EditorWindow(object):
         text.bind("<<del-word-right>>", self.del_word_right)
         text.bind("<<beginning-of-line>>", self.home_callback)
         vis_text.bind("<Button-1>", self.vis_click)
-        console_text.bind("<Button-1>", self.vis_click)
+        console_text.bind("<<copy>>", self.copy)
+        console_text.bind("<<select-all>>", self.select_all)
+        console_text.bind("<<find>>", self.find_event)
 
         if flist:
             flist.inversedict[self] = key
@@ -293,11 +289,11 @@ class EditorWindow(object):
 
         vis_vbar['command'] = vis_text.yview
         vis_vbar.pack(side=RIGHT, fill=Y)
-        #vis_text['yscrollcommand'] = vis_vbar.set
+        vis_text['yscrollcommand'] = vis_vbar.set
 
         console_vbar['command'] = console_text.yview
         console_vbar.pack(side=RIGHT, fill=Y)
-        #console_text['yscrollcommand'] = console_vbar.set
+        console_text['yscrollcommand'] = console_vbar.set
 
         fontWeight = 'normal'
         if idleConf.GetOption('main', 'EditorWindow', 'font-bold', type='bool'):
@@ -306,18 +302,21 @@ class EditorWindow(object):
                           idleConf.GetOption('main', 'EditorWindow',
                                              'font-size', type='int'),
                           fontWeight))
+        console_text.config(font=(idleConf.GetOption('main', 'EditorWindow', 'font'),
+                          idleConf.GetOption('main', 'EditorWindow',
+                                             'font-size', type='int'),
+                          fontWeight))
 
         text_frame.pack(side=LEFT, fill=BOTH, expand=1)
         vis_text_frame.pack(side=LEFT, fill=BOTH, expand=1)
-        #console_text_frame.pack(side=BOTTOM, fill=BOTH, expand=1)
         
         
         text.pack(side=LEFT, fill=BOTH, expand=1)
         vis_list.pack(side = LEFT, fill=BOTH, expand=1)
-        console_list.pack(side = BOTTOM, fill=BOTH, expand=1)
+        console_text.pack(side = BOTTOM, fill=BOTH, expand=1)
         
         vis_vbar.config(command=vis_list.yview)
-        console_vbar.config(command=console_list.yview)
+        console_vbar.config(command=console_text.yview)
         #vis_text.pack(side = LEFT, fill=BOTH, expand=1)
         text.focus_set()
 
@@ -603,7 +602,7 @@ class EditorWindow(object):
             else:
                 rmenu.add_separator()
         self.rmenu = rmenu
-
+    
     def rmenu_check_cut(self):
         return self.rmenu_check_copy()
 
@@ -847,6 +846,13 @@ class EditorWindow(object):
         normal_colors = idleConf.GetHighlight(theme, 'normal')
         cursor_color = idleConf.GetHighlight(theme, 'cursor', fgBg='fg')
         select_colors = idleConf.GetHighlight(theme, 'hilite')
+        self.console_text.config(
+            foreground=normal_colors['foreground'],
+            background=normal_colors['background'],
+            insertbackground=cursor_color,
+            selectforeground=select_colors['foreground'],
+            selectbackground=select_colors['background'],
+            )
         self.text.config(
             foreground=normal_colors['foreground'],
             background=normal_colors['background'],
@@ -862,6 +868,10 @@ class EditorWindow(object):
         if idleConf.GetOption('main','EditorWindow','font-bold',type='bool'):
             fontWeight='bold'
         self.text.config(font=(idleConf.GetOption('main','EditorWindow','font'),
+                idleConf.GetOption('main','EditorWindow','font-size',
+                                   type='int'),
+                fontWeight))
+        self.console_text.config(font=(idleConf.GetOption('main','EditorWindow','font'),
                 idleConf.GetOption('main','EditorWindow','font-size',
                                    type='int'),
                 fontWeight))

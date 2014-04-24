@@ -734,7 +734,7 @@ class ModifiedInterpreter(InteractiveInterpreter):
             if char and char in IDENTCHARS:
                 text.tag_add("ERROR", pos + " wordstart", pos)
             self.tkconsole.resetoutput()
-            self.self_write("SyntaxError: %s\n" % str(msg))
+            self.write("SyntaxError: %s\n" % str(msg))
         else:
             self.tkconsole.resetoutput()
             InteractiveInterpreter.showsyntaxerror(self, filename)

@@ -61,9 +61,11 @@ class OutputWindow(EditorWindow):
             except UnicodeError:
                 # some other encoding; let Tcl deal with it
                 pass
-        self.console_list.insert(END,s)
-        self.console_list.update()
-        self.console_list.see(END)
+        self.console_text.config(state=NORMAL)
+        self.console_text.insert(END,s,tags)
+        self.console_text.see(END)
+        self.console_text.update()
+        self.console_text.config(state=DISABLED)      
         #self.vis_text.insert("insert", s, tags)
         #self.vis_text.update()
 
@@ -140,41 +142,6 @@ class OutputWindow(EditorWindow):
             return filename, int(lineno)
         except TypeError:
             return None
-
-    def _addcolorizer(self):
-        if self.color:
-            return
-        if self.ispythonsource(self.io.filename):
-            self.color = self.ColorDelegator()
-        # can add more colorizers here...
-        if self.color:
-            self.per.removefilter(self.undo)
-            self.per.insertfilter(self.color)
-            self.per.insertfilter(self.undo)
-
-    def _rmcolorizer(self):
-        if not self.color:
-            return
-        self.color.removecolors()
-        self.per.removefilter(self.color)
-        self.color = None
-
-    def ResetColorizer(self):
-        "Update the colour theme"
-        # Called from self.filename_change_hook and from configDialog.py
-        self._rmcolorizer()
-        self._addcolorizer()
-        theme = idleConf.GetOption('main','Theme','name')
-        normal_colors = idleConf.GetHighlight(theme, 'normal')
-        cursor_color = idleConf.GetHighlight(theme, 'cursor', fgBg='fg')
-        select_colors = idleConf.GetHighlight(theme, 'hilite')
-        self.text.config(
-            foreground=normal_colors['foreground'],
-            background=normal_colors['background'],
-            insertbackground=cursor_color,
-            selectforeground=select_colors['foreground'],
-            selectbackground=select_colors['background'],
-            )
 
 # These classes are currently not used but might come in handy
 

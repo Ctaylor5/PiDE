@@ -169,6 +169,7 @@ class Vis_Debugger:
         self.fglobals = Frame(top, height=1)
         #self.fglobals.pack(expand=1, fill="both")
         #
+        top.withdraw()
         if self.vstack.get():
             self.show_stack()
         if self.vlocals.get():

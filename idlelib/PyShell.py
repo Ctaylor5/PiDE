@@ -506,7 +506,7 @@ class ModifiedInterpreter(InteractiveInterpreter):
         # annotate restart in shell window and mark it
         console.text.delete("iomark", "end-1c")
         if was_executing:
-            console.self_write('\n')
+            console.write('\n')
             console.showprompt()
         halfbar = ((int(console.width) - 16) // 2) * '='
         console.self_write(halfbar + ' RESTART ' + halfbar)
@@ -911,7 +911,6 @@ class PyShell(OutputWindow):
             flist = PyShellFileList(root)
         #
         OutputWindow.__init__(self, flist, None, None)
-        #ConsoleWindow.__init__(self, flist, None, None)
         #
 ##        self.config(usetabs=1, indentwidth=8, context_use_ps1=1)
         self.vbugger=Vis_Debugger.Vis_Debugger(self)
@@ -1327,9 +1326,8 @@ class PyShell(OutputWindow):
 
     def write(self, s, tags=()):
         try:
-            self.text.mark_gravity("iomark", "right")
-            #OutputWindow.write(self, s, tags, "iomark")            
-            OutputWindow.vis_write(self, s, tags, "iomark")
+            self.text.mark_gravity("iomark", "right")            
+            OutputWindow.console_write(self, s, tags, "iomark")
             #self.vis_feed(locals, tags)
             self.text.mark_gravity("iomark", "left")
         except:
@@ -1343,7 +1341,18 @@ class PyShell(OutputWindow):
         try:
             self.text.mark_gravity("iomark", "right")
             OutputWindow.write(self, s, tags, "iomark")
-            #OutputWindow.vis_write(self, s, tags, "iomark")
+            self.text.mark_gravity("iomark", "left")
+        except:
+            pass
+        if self.canceled:
+            self.canceled = 0
+            if not use_subprocess:
+                raise KeyboardInterrupt
+
+    def vis_write(self, s, tags=()):
+        try:
+            self.text.mark_gravity("iomark", "right")
+            OutputWindow.vis_write(self, s, tags, "iomark")
             self.text.mark_gravity("iomark", "left")
         except:
             pass
@@ -1358,15 +1367,17 @@ class PyShell(OutputWindow):
         self.vbugger.run(self.interp.vis_compiled[len(self.interp.vis_compiled)-1], self.interp.locals)
         self.vbugger.show_variables()
         self.vbugger.cont()
-        ind=0
+        #ind=0
+        #self.vis_text.delete(BEGIN, END)
         for x in self.vis_vars.keys():
             #print self.interp.vis_compiled[ind]
             #self.vbugger.run(self.interp.vis_compiled[ind], self.interp.locals)        
-            print ind
-            self.vis_list.delete(ind)
-            self.vis_list.insert(ind, "{key} = {val}".format(key=x, val=self.vis_vars[x]))
-            ind=ind+1
-        self.vis_list.update()
+            #print ind
+            #self.vis_list.delete(ind)
+            #self.vis_list(ind, "{key} = {val}".format(key=x, val=self.vis_vars[x]))
+            self.vis_write("{key} = {val}\n".format(key=x, val=self.vis_vars[x]))
+            #ind=ind+1
+        #self.vis_list.update()
 
 
     def vis_strip(self, codes):
@@ -1635,6 +1646,7 @@ def main():
         opts, args = getopt.getopt(sys.argv[1:], "c:deihnr:st:")
     except getopt.error as msg:
         sys.stderr.write("Error: %s\n" % str(msg))
+        OutputWindow.console_write("Error: %s\n" % str(msg))
         sys.stderr.write(usage_msg)
         sys.exit(2)
     for o, a in opts:

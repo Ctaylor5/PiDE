@@ -5,6 +5,8 @@ import tkMessageBox
 from idlelib import IOBinding
 from idlelib.configHandler import idleConf
 
+
+
 class OutputWindow(EditorWindow):
 
     """An editor window that can serve as an output file.
@@ -61,6 +63,23 @@ class OutputWindow(EditorWindow):
             except UnicodeError:
                 # some other encoding; let Tcl deal with it
                 pass
+        self.vis_text.config(state=NORMAL)
+        self.vis_text.insert(END,s)
+        self.vis_text.see(END)
+        self.vis_text.update()
+        self.vis_text.config(state=DISABLED)      
+        #self.vis_text.insert("insert", s, tags)
+        #self.vis_text.update()
+
+    def console_write(self, s, tags=(), mark="insert"):
+        # Tk assumes that byte strings are Latin-1;
+        # we assume that they are in the locale's encoding
+        if isinstance(s, str):
+            try:
+                s = unicode(s, IOBinding.encoding)
+            except UnicodeError:
+                # some other encoding; let Tcl deal with it
+                pass
         self.console_text.config(state=NORMAL)
         self.console_text.insert(END,s,tags)
         self.console_text.see(END)
@@ -69,6 +88,11 @@ class OutputWindow(EditorWindow):
         #self.vis_text.insert("insert", s, tags)
         #self.vis_text.update()
 
+    def is_error(self, s):
+        if "SyntaxError: " in s:
+            return True
+        else:
+            return False
 
     def writelines(self, lines):
         for line in lines:

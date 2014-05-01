@@ -189,7 +189,7 @@ class EditorWindow(object):
                 'name': 'vis_text',
                 'padx': 5,
                 'wrap': 'none',
-                'width': self.width,
+                'width': 50,
                 'height': idleConf.GetOption('main', 'EditorWindow', 'height', type='int')}
         vis_list_options = {
                 'name': 'vis_list',
@@ -213,9 +213,10 @@ class EditorWindow(object):
             console_text_options['tabstyle'] = 'wordprocessor'
         self.text = text = MultiCallCreator(Text)(text_frame, **text_options)
         self.vis_text = vis_text = MultiCallCreator(Text)(vis_text_frame, **vis_text_options)
-        self.vis_list = vis_list = Listbox(vis_text_frame, **vis_list_options)
+        #self.vis_list = vis_list = Listbox(vis_text_frame, **vis_list_options)
         self.console_text = console_text = MultiCallCreator(Text)(console_text_frame, **console_text_options)
-        
+        console_text.tag_config('stdout',foreground='blue')
+        console_text.tag_config('stderr',foreground='red')
         self.top.focused_widget = self.text
 
         self.createmenubar()
@@ -312,10 +313,10 @@ class EditorWindow(object):
         
         
         text.pack(side=LEFT, fill=BOTH, expand=1)
-        vis_list.pack(side = LEFT, fill=BOTH, expand=1)
+        vis_text.pack(side = LEFT, fill=BOTH, expand=1)
         console_text.pack(side = BOTTOM, fill=BOTH, expand=1)
         
-        vis_vbar.config(command=vis_list.yview)
+        vis_vbar.config(command=vis_text.yview)
         console_vbar.config(command=console_text.yview)
         #vis_text.pack(side = LEFT, fill=BOTH, expand=1)
         text.focus_set()
@@ -1110,6 +1111,7 @@ class EditorWindow(object):
             self.color.close(False)
             self.color = None
         self.text = None
+        #self.console_text = None
         self.tkinter_vars = None
         self.per.close()
         self.per = None

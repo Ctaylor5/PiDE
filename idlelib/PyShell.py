@@ -1367,8 +1367,10 @@ class PyShell(OutputWindow):
         self.vbugger.run(self.interp.vis_compiled[len(self.interp.vis_compiled)-1], self.interp.locals)
         self.vbugger.show_variables()
         self.vbugger.cont()
+        self.vis_text.config(state = NORMAL)
+        self.vis_text.delete(1.0, END)
+        self.vis_text.config(state = DISABLED)
         #ind=0
-        #self.vis_text.delete(BEGIN, END)
         for x in self.vis_vars.keys():
             #print self.interp.vis_compiled[ind]
             #self.vbugger.run(self.interp.vis_compiled[ind], self.interp.locals)        

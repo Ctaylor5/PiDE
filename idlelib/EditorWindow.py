@@ -190,7 +190,8 @@ class EditorWindow(object):
                 'padx': 5,
                 'wrap': 'none',
                 'width': 50,
-                'height': idleConf.GetOption('main', 'EditorWindow', 'height', type='int')}
+                'height': idleConf.GetOption('main', 'EditorWindow', 'height', type='int'),
+                'state': DISABLED}
         vis_list_options = {
                 'name': 'vis_list',
                 'width': 50,

@@ -64,6 +64,7 @@ class OutputWindow(EditorWindow):
                 # some other encoding; let Tcl deal with it
                 pass
         self.vis_text.config(state=NORMAL)
+        
         self.vis_text.insert(END,s)
         self.vis_text.see(END)
         self.vis_text.update()

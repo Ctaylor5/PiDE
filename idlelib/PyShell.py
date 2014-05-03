@@ -903,7 +903,6 @@ class PyShell(OutputWindow):
         self.vis_vars={}
         self.vis_varnames = []
         self.vis_varvalues = []
-        self.block = []
 
         if flist is None:
             root = Tk()
@@ -1274,17 +1273,12 @@ class PyShell(OutputWindow):
             i = i-1
         line = line[:i]
         self.in_lines.append(line)
-        self.block.append(line)
+        
         more = self.interp.runsource(line)
 
         #self.vis_strip(self.interp.vis_compiled)
-        
-        if more==True:
-            self.update_vis()
-        else:
+        if more==False:
             self.vis_parse(line)
-            while len(self.block)>0:
-                self.block.pop()
 
     def open_stack_viewer(self, event=None):
         if self.interp.rpcclt:
@@ -1392,38 +1386,14 @@ class PyShell(OutputWindow):
         for c in codes:
            self.vis_vars.append('{banana.co_names},{banana.co_consts}'.format(banana=c))
          
-    def vis_parse(self, block):
+    def vis_parse(self, line):
         print "\nvis_parse"
-        print block
-        if block[0].find("for")>-1:
-            self.parse_for(block)
-        elif block[0].find("if")>-1:
-            self.parse_if(block)
-        elif block[0].find("while")>-1:
-            self.parse_while(block)
-        elif block[0].find("=")>-1:
-            self.parse_var(block)
-        else:
-            self.parse_for(block)
-        x = parse("{}={}",block)
+        print line
+        x = parse("{}={}",line)
         if x != None:
             self.add_tuple(x)
         else:
             self.update_vis()
-
-
-    def parse_if(self, block):
-        print "if"
-
-    
-    def parse_for(self, block):
-        print "for"
-
-    def parse_while(self, block):
-        print "while"
-
-    def parse_var(self, block):
-        print "var"
 
     def add_tuple(self, xs):
         print "\nadd_tuples"

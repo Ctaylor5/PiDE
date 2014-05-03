@@ -1262,6 +1262,7 @@ class PyShell(OutputWindow):
 
     def runit(self):
         line = self.text.get("iomark", "end-1c")
+        lineno = int(float(self.text.index("insert")))
         # Strip off last newline and surrounding whitespace.
         # (To allow you to hit return twice to end a statement.)
         i = len(line)
@@ -1273,12 +1274,23 @@ class PyShell(OutputWindow):
             i = i-1
         line = line[:i]
         self.in_lines.append(line)
-        
+        self.block.append(line)
         more = self.interp.runsource(line)
-
+        print line
         #self.vis_strip(self.interp.vis_compiled)
-        if more==False:
+        
+        if more==True:
+            #self.vbugger.show_variables(1)
+            self.update_vis1()
+            self.vbugger.clear_file_breaks(self.vis_filename)
+            self.vbugger.set_breakpoint_here(self.vis_filename, lineno)
+            #pass block
+        else:
             self.vis_parse(line)
+            while len(self.block)>0:
+                self.block.pop()
+            self.eid= self.eid+1
+
 
     def open_stack_viewer(self, event=None):
         if self.interp.rpcclt:
@@ -1379,7 +1391,13 @@ class PyShell(OutputWindow):
             #self.vis_list(ind, "{key} = {val}".format(key=x, val=self.vis_vars[x]))
             self.vis_write("{key} = {val}\n".format(key=x, val=self.vis_vars[x]))
             #ind=ind+1
-        #self.vis_list.update()
+
+    def update_vis1(self):
+        print "UPDATE VIS!"
+        for n in range(len(self.vbugger.Entries.list)):
+            self.vis_list.delete(n)
+            self.vis_list.insert(n, self.vbugger.Entries.get(n).toString())
+            self.vis_list.update()
 
 
     def vis_strip(self, codes):
@@ -1387,13 +1405,23 @@ class PyShell(OutputWindow):
            self.vis_vars.append('{banana.co_names},{banana.co_consts}'.format(banana=c))
          
     def vis_parse(self, line):
-        print "\nvis_parse"
-        print line
-        x = parse("{}={}",line)
-        if x != None:
-            self.add_tuple(x)
-        else:
-            self.update_vis()
+        self.vbugger.handleEntry(self.eid, line)
+        self.vbugger.run(self.interp.vis_compiled[len(self.interp.vis_compiled)-1], self.interp.locals)
+        
+
+
+    def parse_if(self, block):
+        print "if"
+
+    
+    def parse_for(self, block):
+        print "for"
+
+    def parse_while(self, block):
+        print "while"
+
+    def parse_var(self, block):
+        print "var"
 
     def add_tuple(self, xs):
         print "\nadd_tuples"

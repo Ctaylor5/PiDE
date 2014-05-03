@@ -1,10 +1,15 @@
 import os
 import bdb
 import types
+import string
+from parse import *
 from Tkinter import *
 from idlelib.WindowList import ListedToplevel
 from idlelib.ScrolledList import ScrolledList
 from idlelib import macosxSupport
+from Entries import *
+
+
 
 
 class VIdb(bdb.Bdb):
@@ -78,11 +83,51 @@ class Vis_Debugger:
         self.pyshell = pyshell
         self.idb = idb
         self.frame = None
+        self.Entries = Entries(pyshell)
+        self.eid = 0
+        #pyshell = self.pyshell
         self.make_gui()
         self.interacting = 0
+        
+
+
+    def handleEntry(self, eid, line):
+        thisEntry = self.toEntry(eid,line)
+        self.eid=eid
+        if thisEntry != None:
+            if(self.Entries.length()==0):
+                self.Entries.add(thisEntry)
+            else:
+                if(eid<self.Entries.length()):
+                    self.Entries.get(eid).append(thisEntry)
+                else:
+                    if thisEntry.style == "Variable":
+                        if self.Entries.hasVar(thisEntry.name):
+                            pass
+                        else:
+                            self.Entries.add(thisEntry)
+                    else:
+                        self.Entries.add(thisEntry)
+        else:
+            print "WHELP!"
+
+        
+    def toEntry(self, eid, line):
+        thisEntry = Entry(eid, line, self.pyshell)
+        if line.find('for')>-1:
+            print "FOOUR!!", eid
+            thisEntry = For_Entry(eid, line, self.pyshell)          
+        elif line.find('if')>-1:
+            thisEntry = If_Entry(eid, line, self.pyshell)
+        elif line.find('while')>-1:
+            thisEntry = While_Entry(eid, line, self.pyshell)
+        elif line.find('=')>-1:
+            thisEntry = Var_Entry(eid, line, self.pyshell)
+        return thisEntry
 
     def run(self, *args):
         try:
+            args
             self.interacting = 1
             return self.idb.run(*args)
         finally:
@@ -106,12 +151,12 @@ class Vis_Debugger:
         self.flist = pyshell.flist
         self.root = root = pyshell.root
         self.top = top = ListedToplevel(root)
-        self.top.wm_title("Debug Control")
-        self.top.wm_iconname("Debug")
+        #self.top.wm_title("Debug Control")
+        #self.top.wm_iconname("Debug")
         top.wm_protocol("WM_DELETE_WINDOW", self.close)
         self.top.bind("<Escape>", self.close)
-        #
-        self.bframe = bframe = Frame(top)
+        #        
+        self.bframe = bframe = Frame(top, visual=False)
         self.bframe.pack(anchor="w")
         self.buttons = bl = []
         #
@@ -203,8 +248,9 @@ class Vis_Debugger:
         if sv:
             stack, i = self.idb.get_stack(self.frame, tb)
             sv.load_stack(stack, i)
-        #
+        #HERE!!
         self.show_variables(1)
+        #self.update_entry(self.current_Entry)
         #
         if self.vsource.get():
             self.sync_source_line()
@@ -214,10 +260,22 @@ class Vis_Debugger:
         #
         print "C I 1"
         #self.top.wakeup()
-        #self.cont()      
+        print "EID "+str(self.eid)
+        if (self.Entries.get(self.eid)!=-1):
+            if(self.Entries.get(self.eid).style=="Variable"):
+                print "Continuing IN"
+                #self.show_variables(1)
+                self.cont()
+            else:
+                print "Stepping through"
+                #self.show_Entry(self.Entries.Controls)
+                self.step()
+        else:
+            print "Continuing Out"
+            self.cont()
         #self.root.mainloop()
         print "C I 2"
-        self.cont()
+        #self.step()
         print "C I 3"
         #
         for b in self.buttons:
@@ -226,7 +284,6 @@ class Vis_Debugger:
         self.error.configure(text="", background=self.errorbg)
         self.frame = None
         print "C I End"
-
 
 
     def sync_source_line(self):
@@ -313,6 +370,21 @@ class Vis_Debugger:
                 self.fglobals['height'] = 1
         self.show_variables()
 
+
+    def show_Entry(self, Entries):
+        lv = self.localsviewer
+        frame = self.frame
+        if not frame:
+            ldict = gdict = None
+        else:
+            ldict = frame.f_locals
+            gdict = frame.f_globals
+            if lv and ldict is gdict:
+                ldict = None
+        if lv:
+            lv.load_dict(ldict, Entries, 1, self.pyshell.interp.rpcclt)
+        
+
     def show_variables(self, force=0):
         lv = self.localsviewer
         gv = self.globalsviewer
@@ -327,9 +399,9 @@ class Vis_Debugger:
             if lv and gv and ldict is gdict:
                 ldict = None
         if lv:
-            lv.load_dict(ldict, self.pyshell.vis_vars, force, self.pyshell.interp.rpcclt)
+            lv.load_dict(ldict, self.Entries, force, self.pyshell.interp.rpcclt)
         if gv:
-            gv.load_dict(gdict, self.pyshell.vis_vars, force, self.pyshell.interp.rpcclt)
+            gv.load_dict(gdict, self.Entries, force, self.pyshell.interp.rpcclt)
         
 
     def set_breakpoint_here(self, filename, lineno):
@@ -441,6 +513,7 @@ class NamespaceViewer:
     def __init__(self, master, title, dict=None):
         width = 0
         height = 40
+        self.loadCount = 0
         if dict:
             height = 20*len(dict) # XXX 20 == observed height of Entry widget
         self.master = master
@@ -463,13 +536,46 @@ class NamespaceViewer:
         canvas["yscrollcommand"] = vbar.set
         self.subframe = subframe = Frame(canvas)
         self.sfid = canvas.create_window(0, 0, window=subframe, anchor="nw")
-        self.load_dict(dict,{})
+        self.load_dict(dict,0,{})
 
     dict = -1
 
-    def load_dict(self, dict, vis_ref, force=0, rpc_client=None):
+    def loadHandler(self, dict, Entry):
+            print "Load Handler"
+            if(self.loadCount%2==1):
+                if(Entry.style =="Variable"):
+                    try:
+                        Entry.update(repr(dict[Entry.name]))
+                    except KeyError:
+                        pass
+                elif (Entry.style == "For" and Entry.open):
+                    try:                            
+                        Entry.iterator.update(repr(dict[Entry.iterator.name]))
+                    except KeyError:
+                        pass
+                    for i in Entry.block:
+                        self.loadHandler(dict, i)
+                    Entry.step()
+                    Entry.update()
+                elif (Entry.style == "While"):
+                    try:                            
+                        Entry.conditional.update(repr(dict[Entry.conditional.name]))
+                    except KeyError:
+                        pass
+                    for i in Entry.block:
+                        self.loadHandler(dict, i)
+                elif (Entry.style == "If"):
+                    try:                            
+                        Entry.conditional.update(repr(dict[Entry.conditional.name]))
+                    except KeyError:
+                        pass
+                    for i in Entry.block:
+                        self.loadHandler(dict, i)
+            self.loadCount = self.loadCount+1
+
+    def load_dict(self, dict, Entries, force=0, rpc_client=None):
         print "load_dict Check", self.repr.repr(self.master)
-        print self.repr.repr(self.subframe)
+        #print self.repr.repr(self.subframe)
 
         if dict is self.dict and not force:
             return
@@ -479,6 +585,7 @@ class NamespaceViewer:
             c.destroy()
         self.dict = None
         if not dict:
+            print "WHY YOU Hate me!!!!"
             l = Label(subframe, text="None")
             l.grid(row=0, column=0)
         else:
@@ -492,24 +599,31 @@ class NamespaceViewer:
                 # Strip extra quotes caused by calling repr on the (already)
                 # repr'd value sent across the RPC interface:
                 #print "Name:",name,"Value:", value
-                #print "1Repr:",self.repr.repr(value)         
+                #print "1Repr:",self.repr.repr(value)
                 
                 if rpc_client:
                     svalue = svalue[1:-1]
-                l = Label(subframe, text=name)
-                l.grid(row=row, column=0, sticky="nw")
-                l = Entry(subframe, width=0, borderwidth=0)
-                l.insert(0, svalue)
-                l.grid(row=row, column=1, sticky="nw")
-                row = row+1                
-            for x in vis_ref.keys():
-                    #print x
-                    #self.vis_list.delete(ind)
-                    #self.vis_list.insert(ind, "{key} = {val}".format(key=x, val=value))
-                    try:
-                        vis_ref[x] = repr(dict[x])
-                    except KeyError:
-                        print "WRONG!"                    
+                #l = Label(subframe, text=name)
+                #l.grid(row=row, column=0, sticky="nw")
+                #l = Entry(subframe, width=0, borderwidth=0)
+                #l.insert(0, svalue)
+                #l.grid(row=row, column=1, sticky="nw")
+                #row = row+1
+            if len(Entries.list)>=1:
+                for n in Entries.list:
+                    self.loadHandler(dict, n)
+
+        #print "EID =",eid
+        #thisEnt = Entries.get(eid)
+        #if (thisEnt!=None):
+        #    print thisEnt.line
+        #    print "IM HELPING"               
+        #    try:
+        #        #if Entry.name == pyshell.vis_Entries.
+        #        print "NAME = ", thisEnt.name
+        #        thisEnt.update(repr(dict[repr(thisEnt.name)]))
+        #    except KeyError:
+        #        print "WRONG!"                    
         self.dict = dict
         # XXX Could we use a <Configure> callback for the following?
         #subframe.update()

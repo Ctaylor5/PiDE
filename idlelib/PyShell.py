@@ -672,6 +672,7 @@ class ModifiedInterpreter(InteractiveInterpreter):
     def runsource(self, source):
         "Extend base class method: Stuff the source in the line cache first"
         filename = self.stuffsource(source)
+        self.tkconsole.vis_filename = filename
         self.more = 0
         self.save_warnings_filters = warnings.filters[:]
         warnings.filterwarnings(action="error", category=SyntaxWarning)
@@ -897,12 +898,17 @@ class PyShell(OutputWindow):
         self.interp = ModifiedInterpreter(self)
         import repr
         self.repr = repr.Repr()
-
+        #self.vis_Entries = Entries()
+        self.vis_filename= None
+        self.eid = 0 
         self.in_lines=[]
         self.vis_lines = []
         self.vis_vars={}
-        self.vis_varnames = []
+        self.block_vars = {}
         self.vis_varvalues = []
+        self.block = []
+        self.vis_varnames = []
+ 
 
         if flist is None:
             root = Tk()

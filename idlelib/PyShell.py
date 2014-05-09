@@ -1,4 +1,4 @@
- #! /usr/bin/env python
+#! /usr/bin/env python
 
 import os
 import os.path
@@ -1296,6 +1296,7 @@ class PyShell(OutputWindow):
             while len(self.block)>0:
                 self.block.pop()
             self.eid= self.eid+1
+        self.vbugger.Entries.showAll()
 
 
     def open_stack_viewer(self, event=None):
@@ -1370,7 +1371,9 @@ class PyShell(OutputWindow):
     def vis_write(self, s, tags=()):
         try:
             self.text.mark_gravity("iomark", "right")
+            self.vis_text.mark_set("s%s" % self.eid, END)
             OutputWindow.vis_write(self, s, tags, "iomark")
+            self.vis_text.mark_set("e%s" % self.eid, END)
             self.text.mark_gravity("iomark", "left")
         except:
             pass
@@ -1400,11 +1403,15 @@ class PyShell(OutputWindow):
 
     def update_vis1(self):
         print "UPDATE VIS!"
+        self.vis_text.config(state = NORMAL)
+        self.vis_text.delete(1.0, END)
+        self.vis_text.config(state = DISABLED)
         for n in range(len(self.vbugger.Entries.list)):
             self.vis_list.delete(n)
             self.vis_list.insert(n, self.vbugger.Entries.get(n).toString())
             self.vis_list.update()
-
+            self.vis_write(self.vbugger.Entries.get(n).toString())
+            self.vis_write("\n")
 
     def vis_strip(self, codes):
         for c in codes:

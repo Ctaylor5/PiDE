@@ -1299,13 +1299,8 @@ class PyShell(OutputWindow):
             self.vis_parse(line)
             while len(self.block)>0:
                 self.block.pop()
-<<<<<<< HEAD
             self.eid= self.vbugger.eid
             self.vbugger.Entries.showAll()
-=======
-            self.eid= self.eid+1
-        self.vbugger.Entries.showAll()
->>>>>>> a7dd8496845e035ef75021e2bc74245cb554d59d
 
 
     def open_stack_viewer(self, event=None):
@@ -1380,9 +1375,7 @@ class PyShell(OutputWindow):
     def vis_write(self, s, tags=()):
         try:
             self.text.mark_gravity("iomark", "right")
-            self.vis_text.mark_set("s%s" % self.eid, END)
             OutputWindow.vis_write(self, s, tags, "iomark")
-            self.vis_text.mark_set("e%s" % self.eid, END)
             self.text.mark_gravity("iomark", "left")
         except:
             pass
@@ -1412,23 +1405,12 @@ class PyShell(OutputWindow):
 
     def update_vis1(self):
         print "UPDATE VIS!"
-        self.vis_text.config(state = NORMAL)
-        self.vis_text.delete(1.0, END)
-        self.vis_text.config(state = DISABLED)
         for n in range(len(self.vbugger.Entries.list)):
-<<<<<<< HEAD
             if(self.vbugger.Entries.get(n).style != "Entry"):
                 self.vis_list.delete(n)
                 self.vis_list.insert(n, self.vbugger.Entries.get(n).toString())
                 self.vis_list.update()
 
-=======
-            self.vis_list.delete(n)
-            self.vis_list.insert(n, self.vbugger.Entries.get(n).toString())
-            self.vis_list.update()
-            self.vis_write(self.vbugger.Entries.get(n).toString())
-            self.vis_write("\n")
->>>>>>> a7dd8496845e035ef75021e2bc74245cb554d59d
 
     def vis_strip(self, codes):
         for c in codes:

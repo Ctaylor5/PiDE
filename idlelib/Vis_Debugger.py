@@ -91,23 +91,26 @@ class Vis_Debugger:
         
 
 
-    def handleEntry(self, eid, line):
-        thisEntry = self.toEntry(eid,line)
-        self.eid=eid
+    def handleEntry(self, line):
+        thisEntry = self.toEntry(self.eid,line)
         if thisEntry != None:
             if(self.Entries.length()==0):
                 self.Entries.add(thisEntry)
+                self.eid = self.eid + 1
             else:
-                if(eid<self.Entries.length()):
-                    self.Entries.get(eid).append(thisEntry)
+                if(self.eid<self.Entries.length()):
+                    print "Adding to block 1"
+                    self.Entries.get(self.eid).append(thisEntry)
                 else:
                     if thisEntry.style == "Variable":
                         if self.Entries.hasVar(thisEntry.name):
                             pass
                         else:
                             self.Entries.add(thisEntry)
-                    else:
+                            self.eid = self.eid + 1
+                    elif thisEntry.style != "Entry":
                         self.Entries.add(thisEntry)
+                        self.eid = self.eid + 1
         else:
             print "WHELP!"
 
@@ -249,7 +252,8 @@ class Vis_Debugger:
             stack, i = self.idb.get_stack(self.frame, tb)
             sv.load_stack(stack, i)
         #HERE!!
-        self.show_variables(1)
+        #if(self.eid==0):
+            #self.show_variables(1)
         #self.update_entry(self.current_Entry)
         #
         if self.vsource.get():
@@ -261,15 +265,17 @@ class Vis_Debugger:
         print "C I 1"
         #self.top.wakeup()
         print "EID "+str(self.eid)
-        if (self.Entries.get(self.eid)!=-1):
-            if(self.Entries.get(self.eid).style=="Variable"):
+
+        if (self.Entries.get(self.eid-1)!=-1):
+            if(self.Entries.get(self.eid-1).style=="Variable"):
                 print "Continuing IN"
-                #self.show_variables(1)
-                self.cont()
+                self.show_variables(1)
+                self.step()                
             else:
                 print "Stepping through"
                 #self.show_Entry(self.Entries.Controls)
-                self.step()
+                self.show_variables(1)
+                self.next()
         else:
             print "Continuing Out"
             self.cont()
@@ -284,6 +290,7 @@ class Vis_Debugger:
         self.error.configure(text="", background=self.errorbg)
         self.frame = None
         print "C I End"
+        
 
 
     def sync_source_line(self):
@@ -513,7 +520,8 @@ class NamespaceViewer:
     def __init__(self, master, title, dict=None):
         width = 0
         height = 40
-        self.loadCount = 0
+        self.loadCount = 1        
+        self.loopCounter = 1
         if dict:
             height = 20*len(dict) # XXX 20 == observed height of Entry widget
         self.master = master
@@ -542,36 +550,51 @@ class NamespaceViewer:
 
     def loadHandler(self, dict, Entry):
             print "Load Handler"
-            if(self.loadCount%2==1):
-                if(Entry.style =="Variable"):
-                    try:
-                        Entry.update(repr(dict[Entry.name]))
-                    except KeyError:
-                        pass
-                elif (Entry.style == "For" and Entry.open):
-                    try:                            
-                        Entry.iterator.update(repr(dict[Entry.iterator.name]))
-                    except KeyError:
-                        pass
-                    for i in Entry.block:
-                        self.loadHandler(dict, i)
+            #if(self.loadCount%2==1):
+            if(Entry.style =="Variable"):
+                try:
+                    Entry.update(repr(dict[Entry.name]))
+                    #Entry.show()
+                except KeyError:
+                    pass
+            elif (Entry.style == "For" and Entry.open):
+                try:                            
+                    Entry.iterator.update(repr(dict[Entry.iterator.name]))
+                except KeyError:
+                    pass
+                for i in Entry.block:
+                    print "In block " + i.toString()[:-1]
+                    self.loadHandler(dict, i)
+                self.loadCount = self.loadCount+1                    
+                if(Entry.loopCounter%len(Entry.block)==0):
                     Entry.step()
-                    Entry.update()
-                elif (Entry.style == "While"):
-                    try:                            
-                        Entry.conditional.update(repr(dict[Entry.conditional.name]))
-                    except KeyError:
-                        pass
-                    for i in Entry.block:
-                        self.loadHandler(dict, i)
-                elif (Entry.style == "If"):
-                    try:                            
-                        Entry.conditional.update(repr(dict[Entry.conditional.name]))
-                    except KeyError:
-                        pass
-                    for i in Entry.block:
-                        self.loadHandler(dict, i)
-            self.loadCount = self.loadCount+1
+                    Entry.loopCounter = 1
+                else:
+                    Entry.loopCounter = Entry.loopCounter + 1
+                #Entry.update()
+                #Entry.show()
+            elif (Entry.style == "While"):
+                try:                            
+                    Entry.conditional.update(bool(Entry.conditional.name))
+                except KeyError:
+                    pass
+                for i in Entry.block:
+                    print "In block " + i.toString()[:-1]
+                    self.loadHandler(dict, i)
+                self.loadCount = self.loadCount+1                    
+                if(Entry.loopCounter%len(Entry.block)==0):
+                    Entry.step()
+                    Entry.loopCounter = 1
+                else:
+                    Entry.loopCounter = Entry.loopCounter + 1
+            elif (Entry.style == "If"):
+                try:                            
+                    Entry.conditional.update(repr(dict[Entry.conditional.name]))
+                except KeyError:
+                    pass
+                for i in Entry.block:
+                    self.loadHandler(dict, i)
+            self.loadCount = 1
 
     def load_dict(self, dict, Entries, force=0, rpc_client=None):
         print "load_dict Check", self.repr.repr(self.master)
@@ -595,7 +618,8 @@ class NamespaceViewer:
             ind = 0
             for name in names:
                 value = dict[name]
-                svalue = self.repr.repr(value)# repr(value)
+                svalue = self.repr.repr(value)
+                # repr(value)
                 # Strip extra quotes caused by calling repr on the (already)
                 # repr'd value sent across the RPC interface:
                 #print "Name:",name,"Value:", value
@@ -627,7 +651,7 @@ class NamespaceViewer:
         self.dict = dict
         # XXX Could we use a <Configure> callback for the following?
         #subframe.update()
-        subframe.update_idletasks() # Alas!
+        subframe.update_idletasks() # Alas!          
         width = subframe.winfo_reqwidth()
         height = subframe.winfo_reqheight()
         canvas = self.canvas

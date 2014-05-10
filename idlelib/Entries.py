@@ -12,19 +12,24 @@ class Entry:
 	def append(self, Entry):
 		self.block.append(Entry)
 
-	def update(self):
+	def show(self):
+		self.pyshell.vis_write(self.toString())
 		self.pyshell.update_vis1()
+		
+
+	def update(self):		
+		#self.pyshell.vis_write(self.toString())
+		#self.pyshell.update_vis1()
 		pass
 
 	def makeBlock(self, line):
 		lines = string.split(line,"\n")
 		for n in lines:
-			self.toEntry(self.eid, n)
+			self.block.append(self.toEntry(self.eid, string.strip(n)))
 
 	def toEntry(self, eid, line):
 		thisEntry = Entry(eid, line, self.pyshell)
 		if line.find('for')>-1:
-			print "FOOUR!!", eid
 			thisEntry = For_Entry(eid, line, self.pyshell)          
 		elif line.find('if')>-1:
 			thisEntry = If_Entry(eid, line, self.pyshell)
@@ -35,8 +40,7 @@ class Entry:
 		return thisEntry
 
 	def toString(self):
-		return ""
-
+		return "E"
 
 
 class Var_Entry(Entry):
@@ -56,9 +60,9 @@ class Var_Entry(Entry):
 
 	def toString(self):
 		if (self.value == None):
-			return self.name + " = None"
+			return str(self.name) + " = None" + "\n"
 		else:
-			return self.name + " = " + self.value
+			return str(self.name) + " = " + str(self.value) +"\n"
 
 class For_Entry(Entry):
 	def __init__(self, eid, line, pyshell):
@@ -66,28 +70,92 @@ class For_Entry(Entry):
 		Entry.__init__(self, eid, temp[0]+":", pyshell)
 		self.style = "For"
 		self.open = True
+		self.loopCounter = 1
 		x = parse("for {} in {}:{}",line)
-		print "WHAT UP!!!"
-		print repr(temp)
-		print temp[1]+" "
-		self.makeBlock(repr(temp[1]))	
+		self.makeBlock(temp[1])	
 		x = string.strip(x[0])+"= NONE"
 		self.iterator = Var_Entry(eid, x, pyshell)
 		self.report = temp[0]+':\n'
+		self.lastSub = ""
 
 	def step(self):
-		print "For Step!"
-		self.report = self.report+self.iterator.toString()+"\t|"
-		for n in self.block:
-			if(n.style != "Entry"):
-				self.report = self.report+"\n"+(" "*len(self.iterator.toString()))+ "\t| "+ n.toString()
-
+		if(self.open):
+			if(self.iterator.toString().find("NONE")<0):
+				sub = self.iterator.toString()[:-1]+"\t| "
+				for n in range(len(self.block)):
+					if(self.block[n].style != "Entry"):
+						sub = sub + self.block[n].toString()[:-1]
+						if(n+1<len(self.block) and self.block[n+1].style != "Entry"):
+							sub = sub + "\n" +(" "*len(self.iterator.toString()))+ "\t| "						
+				sub = sub+"\n"
+				if(sub!=self.lastSub):#corrects closed block updates
+					self.report = self.report+sub
+					self.lastSub = sub
 	
-
-
 	def toString(self):
 		return self.report
 
+class While_Entry(Entry):
+	def __init__(self, eid, line, pyshell):
+		temp = parse("{}:{}",line)
+		Entry.__init__(self, eid, temp[0]+":", pyshell)
+		self.style = "While"
+		self.open = True
+		self.loopCounter = 1
+		x = parse("while{}:{}",line)
+		self.makeBlock(temp[1])	
+		x = string.strip(x[0])+"= " + str(bool(x[0]))
+		self.conditional = Var_Entry(eid, x, pyshell)
+		self.report = temp[0]+':\n'
+		self.lastSub = ""
+
+	def step(self):
+		if(self.open):
+			sub = self.conditional.toString()[:-1]+"| "
+			for n in range(len(self.block)):
+				if(self.block[n].style != "Entry"):
+					sub = sub + self.block[n].toString()[:-1]
+					if(n+1<len(self.block) and self.block[n+1].style != "Entry"):
+						sub = sub + "\n" +(" "*len(self.conditional.toString()))+ "\t| "						
+			sub = sub+"\n"
+			if(sub!=self.lastSub):#corrects closed block updates
+				self.report = self.report+sub
+				self.lastSub = sub
+
+	
+	def toString(self):
+		return self.report
+
+class If_Entry(Entry):
+	def __init__(self, eid, line, pyshell):
+		temp = parse("{}:{}",line)
+		Entry.__init__(self, eid, temp[0]+":", pyshell)
+		self.style = "If"
+		self.open = True
+		self.loopCounter = 1
+		x = parse("if{}:{}",line)
+		self.makeBlock(temp[1])	
+		x = string.strip(x[0])+"= " + str(bool(x[0]))
+		self.conditional = Var_Entry(eid, x, pyshell)
+		self.report = temp[0]+':\n'
+		self.lastSub = ""
+
+	def step(self):
+		if(self.open):
+			sub = self.conditional.toString()[:-1]+"| "
+			for n in range(len(self.block)):
+				if(self.block[n].style != "Entry"):
+					sub = sub + self.block[n].toString()[:-1]
+					if(n+1<len(self.block) and self.block[n+1].style != "Entry"):
+						sub = sub + "\n" +(" "*len(self.conditional.toString()))+ "\t| "						
+			sub = sub+"\n"
+			if(sub!=self.lastSub):#corrects closed block updates
+				self.report = self.report+sub
+				self.lastSub = sub
+
+	
+	def toString(self):
+		return self.report
 
 class Entries:
 	def __init__(self, pyshell):
@@ -111,26 +179,24 @@ class Entries:
     #    	    if thisEntry==None:
     #    	        thisEntry = Var_Entry(eid, line[], self)
     #    	        self.Entries.add(thisEntry)
-	
+	def showAll(self):
+		for n in self.list:
+			if(n.style != "Entry"):
+				n.show()
+
+
 	def add(self, Entry):
 		if(Entry.eid>=len(self.list)):
-			print len(self.list)
-			print "add 1", Entry.line, Entry.style, Entry.eid
 			self.list.append(Entry)
-			print self.list[0].toString()
 		else:
-			print "Appending"
 			self.list[Entry.eid].append(Entry)
 
 
 	def Vars(self):
 		result = Entries(self.pyshell)
-		#print self.list
 		for n in self.list:
-			#print n.__repr__
 			if(n.style=="Variable"):
 				result.add(n)
-		#print result
 		return result
 
 	def Ifs(self):
@@ -190,9 +256,3 @@ class Entries:
 
 	def length(self):
 		return len(self.list)
-
-	def show(self):
-		block = []
-		for n in len(self.list):
-			block.append(repr(self.list))
-		return block

@@ -180,6 +180,7 @@ class EditorWindow(object):
         self.vbar = vbar = Scrollbar(text_frame, name='vbar')
         self.vis_vbar = vis_vbar = Scrollbar(vis_text_frame, orient = VERTICAL, name = 'vis_vbar')
         self.console_vbar = console_vbar = Scrollbar(console_text_frame, orient = VERTICAL, name='console_vbar')
+        self.vis_hbar = vis_hbar = Scrollbar(vis_text_frame, orient = HORIZONTAL, name = 'vis_hbar')
 
         self.width = idleConf.GetOption('main','EditorWindow','width', type='int')
         text_options = {
@@ -297,6 +298,9 @@ class EditorWindow(object):
         vis_vbar['command'] = vis_text.yview
         vis_vbar.pack(side=RIGHT, fill=Y)
         vis_text['yscrollcommand'] = vis_vbar.set
+        vis_hbar['command'] = vis_text.xview
+        vis_hbar.pack(side=BOTTOM, fill=X)
+        vis_text['xscrollcommand'] = vis_hbar.set
 
         console_vbar['command'] = console_text.yview
         console_vbar.pack(side=RIGHT, fill=Y)

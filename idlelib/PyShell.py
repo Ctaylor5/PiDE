@@ -63,6 +63,9 @@ except ImportError:
 warning_stream = sys.__stderr__  # None, at least on Windows, if no console.
 import warnings
 
+def SetConsoleTitle(ConsoleTitle):
+    win32console.SetConsoleTitle("PiDE")
+
 def idle_formatwarning(message, category, filename, lineno, line=None):
     """Format warnings the IDLE way."""
 
@@ -865,7 +868,8 @@ class ModifiedInterpreter(InteractiveInterpreter):
 
 class PyShell(OutputWindow):
 
-    shell_title = "Python " + python_version() + " Shell"
+    #shell_title = "Python " + python_version() + " Shell"
+    shell_title = "PiDE"
 
     # Override classes
     ColorDelegator = ModifiedColorDelegator
@@ -1287,7 +1291,7 @@ class PyShell(OutputWindow):
         
         if more==True:
             #self.vbugger.show_variables(1)
-            self.update_vis1()
+            #self.update_vis1()
             self.vbugger.clear_file_breaks(self.vis_filename)
             self.vbugger.set_breakpoint_here(self.vis_filename, lineno)
             #pass block
@@ -1295,7 +1299,13 @@ class PyShell(OutputWindow):
             self.vis_parse(line)
             while len(self.block)>0:
                 self.block.pop()
+<<<<<<< HEAD
+            self.eid= self.vbugger.eid
+            self.vbugger.Entries.showAll()
+=======
             self.eid= self.eid+1
+        self.vbugger.Entries.showAll()
+>>>>>>> a7dd8496845e035ef75021e2bc74245cb554d59d
 
 
     def open_stack_viewer(self, event=None):
@@ -1370,7 +1380,9 @@ class PyShell(OutputWindow):
     def vis_write(self, s, tags=()):
         try:
             self.text.mark_gravity("iomark", "right")
+            self.vis_text.mark_set("s%s" % self.eid, END)
             OutputWindow.vis_write(self, s, tags, "iomark")
+            self.vis_text.mark_set("e%s" % self.eid, END)
             self.text.mark_gravity("iomark", "left")
         except:
             pass
@@ -1382,9 +1394,9 @@ class PyShell(OutputWindow):
     def update_vis(self):
         print"\nvis_vars"
         #print self.vis_vars        
-        self.vbugger.run(self.interp.vis_compiled[len(self.interp.vis_compiled)-1], self.interp.locals)
-        self.vbugger.show_variables()
-        self.vbugger.cont()
+        #self.vbugger.run(self.interp.vis_compiled[len(self.interp.vis_compiled)-1], self.interp.locals)
+        #self.vbugger.show_variables()
+        #self.vbugger.cont()
         self.vis_text.config(state = NORMAL)
         self.vis_text.delete(1.0, END)
         self.vis_text.config(state = DISABLED)
@@ -1400,18 +1412,30 @@ class PyShell(OutputWindow):
 
     def update_vis1(self):
         print "UPDATE VIS!"
+        self.vis_text.config(state = NORMAL)
+        self.vis_text.delete(1.0, END)
+        self.vis_text.config(state = DISABLED)
         for n in range(len(self.vbugger.Entries.list)):
+<<<<<<< HEAD
+            if(self.vbugger.Entries.get(n).style != "Entry"):
+                self.vis_list.delete(n)
+                self.vis_list.insert(n, self.vbugger.Entries.get(n).toString())
+                self.vis_list.update()
+
+=======
             self.vis_list.delete(n)
             self.vis_list.insert(n, self.vbugger.Entries.get(n).toString())
             self.vis_list.update()
-
+            self.vis_write(self.vbugger.Entries.get(n).toString())
+            self.vis_write("\n")
+>>>>>>> a7dd8496845e035ef75021e2bc74245cb554d59d
 
     def vis_strip(self, codes):
         for c in codes:
            self.vis_vars.append('{banana.co_names},{banana.co_consts}'.format(banana=c))
          
     def vis_parse(self, line):
-        self.vbugger.handleEntry(self.eid, line)
+        self.vbugger.handleEntry(line)
         self.vbugger.run(self.interp.vis_compiled[len(self.interp.vis_compiled)-1], self.interp.locals)
         
 
@@ -1746,7 +1770,7 @@ def main():
     enable_edit = enable_edit or edit_start
     enable_shell = enable_shell or not enable_edit
     # start editor and/or shell windows:
-    root = Tk(className="Idle")
+    root = Tk(className="PiDE")
 
     fixwordbreaks(root)
     root.withdraw()

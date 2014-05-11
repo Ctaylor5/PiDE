@@ -63,8 +63,8 @@ class OutputWindow(EditorWindow):
             except UnicodeError:
                 # some other encoding; let Tcl deal with it
                 pass
-
-        self.vis_text.config(state=NORMAL)        
+        
+        self.vis_text.config(state=NORMAL)      
         self.vis_text.insert("insert",s)
         self.vis_text.see("insert")
         self.vis_text.update()
@@ -72,6 +72,53 @@ class OutputWindow(EditorWindow):
 
         #self.vis_text.insert("insert", s, tags)
         #self.vis_text.update()
+
+    def get_text(self, marka, markb):
+        s = self.vis_text.get(marka, markb)
+        return s
+        
+    def set_start_mark(self, eid):
+        print "EID set_start_mark %s" % eid + "\t"
+        print "s%s" % eid
+        self.vis_text.config(state=NORMAL)
+        self.vis_text.mark_set("s%s" % eid, "insert")
+        self.vis_text.mark_gravity("s%s" % eid, "left")
+        print self.vis_text.index("s%s" % eid)
+        self.vis_text.config(state=DISABLED)
+
+    def set_end_mark(self, eid):
+        print "EID set_end_mark %s" % eid + "\t"
+        print "e%s" % eid
+        self.vis_text.config(state=NORMAL)
+        test = float(self.vis_text.index("insert"))
+        test = test - 0.1
+        test = "%s" % test
+        print test
+        self.vis_text.mark_set("e%s" % eid, test)
+        self.vis_text.mark_gravity("e%s" % eid, "right")
+        print self.vis_text.index("e%s" % eid)
+        self.vis_text.config(state=DISABLED)
+
+    def vis_update(self, s, eid, tags=()):
+        print "VIS_UPDATE CALL SUCCESS"
+        if isinstance(s, str):
+            try:
+                s = unicode(s, IOBinding.encoding)
+            except UnicodeError:
+                # some other encoding; let Tcl deal with it
+                pass
+
+        self.vis_text.config(state=NORMAL) 
+        print "EID vis_update %s" % eid
+        sm = "s%s" % eid
+        em = "e%s" % eid
+        print self.vis_text.index(sm)
+        print self.vis_text.index(em)
+        self.vis_text.delete(sm, em)     
+        self.vis_text.insert(em, s)
+        self.vis_text.see("insert")
+        self.vis_text.update()
+        self.vis_text.config(state=DISABLED)
 
     def console_write(self, s, tags=(), mark="insert"):
         # Tk assumes that byte strings are Latin-1;
@@ -94,13 +141,16 @@ class OutputWindow(EditorWindow):
 
     def check_err(self, s, tags=(), mark="insert"):
         if("NameError: name ") in s and (" is not defined") in s:
-            s += "\tThe variable you were trying to use is undefined. You must define it first.\n\t\tExample: x = 4\n-------------------------------------------------------------------------------\n"
+            a = s.find("NameError: name ")
+            b = s.find(" is not defined")
+            c = s[(a + 17):(b - 1)]
+            s += "\tThe variable you were trying to use is undefined. You must define it first.\n\t\tExample: " + c + " = 4\n-------------------------------------------------------------------------------\n"
         if("SyntaxError: invalid syntax") in s:
             s += "\tThere seems to be a problem with your syntax. Check the highlighted section to see what you did wrong.\n\t\tIf something is highlighted, you have typed something invalid. If there is highlighting after what you typed,\n\t\tthen the syntax is incomplete.------------\n"
         if("TypeError: unsupported operand type(s) for") in s:
             s += "\tYou cannot perform this operation on these data types. Change the data type.\n-------------\n"
         if("ZeroDivisionError:") in s:
-            s += "\tDividing by zero will end the universe. So we can't allow you to do that.\n--------------\n"
+            s += "\tSome say, dividing by zero will end the universe. So we can't allow you to do that.\n--------------\n"
         if("KeyboardInterrupt") in s:
             s += "\tYour program stopped manually.----------------\n"
         if("SyntaxError: EOL while scanning string literal") in s:

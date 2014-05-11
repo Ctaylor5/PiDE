@@ -1,10 +1,13 @@
 from parse import *
 import string
+from idlelib.EditorWindow import EditorWindow, fixwordbreaks
+
 
 class Entry:
 	def __init__(self, eid, line, pyshell):
 		self.pyshell = pyshell
 		self.eid = eid
+		self.mark_is_set = False
 		self.style = "Entry"
 		self.line = line
 		self.block = []
@@ -13,7 +16,11 @@ class Entry:
 		self.block.append(Entry)
 
 	def show(self):
+		self.pyshell.set_start_mark(self.eid)
 		self.pyshell.vis_write(self.toString())
+		
+		self.pyshell.set_end_mark(self.eid)
+		self.mark_is_set = True
 		self.pyshell.update_vis1()
 		
 
@@ -181,8 +188,12 @@ class Entries:
     #    	        self.Entries.add(thisEntry)
 	def showAll(self):
 		for n in self.list:
-			if(n.style != "Entry"):
+			if(n.style != "Entry" and not n.mark_is_set):
 				n.show()
+			else:
+				print "CHECK SHOW TEST %s" % n.eid
+				self.pyshell.vis_update(n.toString(), n.eid)
+
 
 
 	def add(self, Entry):

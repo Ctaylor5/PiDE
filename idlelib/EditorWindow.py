@@ -207,7 +207,7 @@ class EditorWindow(object):
                 'padx': 5,
                 'wrap': 'none',
                 'width': idleConf.GetOption('main', 'EditorWindow', 'width', type='int'),
-                'height': 8,
+                'height': 12,
                 'state': DISABLED}      
         if TkVersion >= 8.5:
             # Starting with tk 8.5 we have to set the new tabstyle option

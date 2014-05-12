@@ -177,6 +177,7 @@ class EditorWindow(object):
         self.console_text_frame = console_text_frame = Frame(top)
 
         console_text_frame.pack(side = BOTTOM, fill = BOTH, expand = 1)
+        
         self.vbar = vbar = Scrollbar(text_frame, name='vbar')
         self.vis_vbar = vis_vbar = Scrollbar(vis_text_frame, orient = VERTICAL, name = 'vis_vbar')
         self.console_vbar = console_vbar = Scrollbar(console_text_frame, orient = VERTICAL, name='console_vbar')
@@ -219,7 +220,7 @@ class EditorWindow(object):
 
         self.text = text = MultiCallCreator(Text)(text_frame, **text_options)
         self.vis_text = vis_text = MultiCallCreator(Text)(vis_text_frame, **vis_text_options)
-        self.vis_list = vis_list = Listbox(vis_text_frame, **vis_list_options)
+        #self.vis_list = vis_list = Listbox(vis_text_frame, **vis_list_options)
         self.console_text = console_text = MultiCallCreator(Text)(console_text_frame, **console_text_options)
 
         console_text.tag_config('stdout',foreground='blue')
@@ -325,11 +326,10 @@ class EditorWindow(object):
         text.pack(side=LEFT, fill=BOTH, expand=1)
         vis_text.pack(side = LEFT, fill=BOTH, expand=1)
         console_text.pack(side = BOTTOM, fill=BOTH, expand=1)
-        vis_list.pack(side = LEFT, fill=BOTH, expand=1)
+        #vis_list.pack(side = LEFT, fill=BOTH, expand=1)
         
         vis_vbar.config(command=vis_text.yview)
         console_vbar.config(command=console_text.yview)
-        #vis_text.pack(side = LEFT, fill=BOTH, expand=1)
         text.focus_set()
 
         # usetabs true  -> literal tab characters are used by indent and

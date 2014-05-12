@@ -7,6 +7,7 @@ class Entry:
 	def __init__(self, eid, line, pyshell):
 		self.pyshell = pyshell
 		self.eid = eid
+		self.open = True
 		self.mark_is_set = False
 		self.style = "Entry"
 		self.line = line
@@ -17,11 +18,10 @@ class Entry:
 
 	def show(self):
 		self.pyshell.set_start_mark(self.eid)
-		self.pyshell.vis_write(self.toString())
-		
+		self.pyshell.vis_write(self.toString())		
 		self.pyshell.set_end_mark(self.eid)
 		self.mark_is_set = True
-		self.pyshell.update_vis1()
+		#self.pyshell.update_vis1()
 		
 
 	def update(self):		
@@ -54,7 +54,7 @@ class Var_Entry(Entry):
 	def __init__(self, eid, line, pyshell):
 		Entry.__init__(self, eid, line, pyshell)
 		self.style = "Variable"
-		x = parse("{}={}",line)		
+		x = parse("{}={}",line)
 		self.name = string.strip(x[0])
 		self.value = string.strip(x[1])
 
@@ -88,12 +88,12 @@ class For_Entry(Entry):
 	def step(self):
 		if(self.open):
 			if(self.iterator.toString().find("NONE")<0):
-				sub = self.iterator.toString()[:-1]+"\t| "
+				sub = self.iterator.toString()[:-1]+"    | "
 				for n in range(len(self.block)):
 					if(self.block[n].style != "Entry"):
 						sub = sub + self.block[n].toString()[:-1]
 						if(n+1<len(self.block) and self.block[n+1].style != "Entry"):
-							sub = sub + "\n" +(" "*len(self.iterator.toString()))+ "\t| "						
+							sub = sub + "\n" +(" "*len(self.iterator.toString()))+ "    | "						
 				sub = sub+"\n"
 				if(sub!=self.lastSub):#corrects closed block updates
 					self.report = self.report+sub
@@ -160,7 +160,7 @@ class If_Entry(Entry):
 				self.report = self.report+sub
 				self.lastSub = sub
 
-	
+
 	def toString(self):
 		return self.report
 
@@ -170,31 +170,34 @@ class Entries:
 		self.list = []
 		self.currentEid=0
 
-	#def add(self, lines):
-	#	self.eid=eid
-	#	for n in range(len(lines)):
-    #    	if line[n].find('for')>-1:
-    #    	    self.parse_for(line[n])
-    #    	elif line[n].find('if')>-1:
-    #    	    self.parse_if(line[n])
-    #    	elif line[n].find('while')>-1:
-    #    	    self.parse_while(line[n])
-    #    	elif line[n].find('=')>-1:
-    #    	    x = parse('{}={}',line[n])
-    #    	    print x[0]
-    #    	    thisEntry = self.Entries.hasVar(x[0])
-    #    	    if thisEntry==None:
-    #    	        thisEntry = Var_Entry(eid, line[], self)
-    #    	        self.Entries.add(thisEntry)
+
+	#def showAll(self):
+	#	for n in self.list:
+	#		if(n.style != "Entry" and not n.mark_is_set):
+	#			n.show()
+	#		else:
+	#			print "CHECK SHOW TEST %s" % n.eid
+	#			self.pyshell.vis_update(string.strip(n.toString()), n.eid)
+
+
 	def showAll(self):
 		for n in self.list:
-			if(n.style != "Entry" and not n.mark_is_set):
-				n.show()
-			else:
-				print "CHECK SHOW TEST %s" % n.eid
-				self.pyshell.vis_update(n.toString(), n.eid)
+			if(n.open):
+				if(n.style != "Entry" and not n.mark_is_set):
+					n.show()
+					if n.style == "For" or n.style == "While" or n.style == "If":
+						n.open = False
+				else:
+					print "start M = %s" % self.pyshell.vis_text.index("s%s" % n.eid)
+					print "end M = %s" % self.pyshell.vis_text.index("e%s" % n.eid)
+					previous = string.strip(self.pyshell.get_text("s%s" % n.eid, "e%s" % n.eid))
+					current = string.strip(n.toString())
+					print previous + "\n" + current
+					if not previous == current:
+						self.pyshell.vis_update(current+"\n", n.eid)
+					
 
-
+	
 
 	def add(self, Entry):
 		if(Entry.eid>=len(self.list)):

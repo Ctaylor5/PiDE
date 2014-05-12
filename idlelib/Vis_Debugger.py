@@ -573,7 +573,7 @@ class NamespaceViewer:
                     Entry.loopCounter = Entry.loopCounter + 1
                 #Entry.update()
                 #Entry.show()
-            elif (Entry.style == "While"):
+            elif (Entry.style == "While" and Entry.open):
                 try:                            
                     Entry.conditional.update(bool(Entry.conditional.name))
                 except KeyError:
@@ -587,7 +587,7 @@ class NamespaceViewer:
                     Entry.loopCounter = 1
                 else:
                     Entry.loopCounter = Entry.loopCounter + 1
-            elif (Entry.style == "If"):
+            elif (Entry.style == "If" and Entry.open):
                 try:                            
                     Entry.conditional.update(repr(dict[Entry.conditional.name]))
                 except KeyError:

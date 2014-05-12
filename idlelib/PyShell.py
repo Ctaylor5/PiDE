@@ -1217,7 +1217,7 @@ class PyShell(OutputWindow):
         # in the prompt area, move to the end of the prompt
         if self.text.compare("insert", "<", "iomark"):
             self.text.mark_set("insert", "iomark")
-            self.vis_text.mark_set("insert", "sel.first")
+            self.vis_test.mark_set("insert", "sel.first")
         # If we're in the current input and there's only whitespace
         # beyond the cursor, erase that whitespace first
         s = self.text.get("insert", "end-1c")
@@ -1299,7 +1299,7 @@ class PyShell(OutputWindow):
             self.vis_parse(line)
             while len(self.block)>0:
                 self.block.pop()
-            self.eid = self.vbugger.eid
+            self.eid= self.vbugger.eid
             self.vbugger.Entries.showAll()
 
 
@@ -1355,7 +1355,6 @@ class PyShell(OutputWindow):
             self.text.mark_gravity("iomark", "left")
         except:
             pass
-            self.pyshell.vis_update(self.toString(), self.eid)
         if self.canceled:
             self.canceled = 0
             if not use_subprocess:
@@ -1365,36 +1364,19 @@ class PyShell(OutputWindow):
         try:
             self.text.mark_gravity("iomark", "right")
             OutputWindow.write(self, s, tags, "iomark")
+            self.text.mark_gravity("iomark", "left") 
+        except:
+            pass
+        if self.canceled:
+            self.canceled = 0
+            if not use_subprocess:
+                raise KeyboardInterrupt
+
+    def vis_write(self, s, tags=()):
+        try:
+            self.text.mark_gravity("iomark", "right")
+            OutputWindow.vis_write(self, s, tags, "iomark")
             self.text.mark_gravity("iomark", "left")
-        except:
-            pass
-        if self.canceled:
-            self.canceled = 0
-            if not use_subprocess:
-                raise KeyboardInterrupt
-
-    def vis_write(self, s, tags=(), mark=""):
-        try:
-            OutputWindow.vis_write(self, s, tags, mark)
-        except:
-            pass
-        if self.canceled:
-            self.canceled = 0
-            if not use_subprocess:
-                raise KeyboardInterrupt
-
-    def set_start_mark(self, eid):
-        print "CHECK SSM"
-        OutputWindow.set_start_mark(self, eid)
-
-    def set_end_mark(self, eid):
-        print "CHECK SEM"
-        OutputWindow.set_end_mark(self, eid)
-
-    def vis_update(self, s, eid, tags=()):
-        try:
-            print "CHECK VIS_UPDATE OUTWIN %s" % eid            
-            OutputWindow.vis_update(self, s, eid, tags)
         except:
             pass
         if self.canceled:

@@ -93,7 +93,7 @@ class OutputWindow(EditorWindow):
         test = float(self.vis_text.index("insert"))
         test = test - 0.1
         test = "%s" % test
-        print test
+        print "Test " + test
         self.vis_text.mark_set("e%s" % eid, test)
         self.vis_text.mark_gravity("e%s" % eid, "right")
         print self.vis_text.index("e%s" % eid)
@@ -112,8 +112,8 @@ class OutputWindow(EditorWindow):
         print "EID vis_update %s" % eid
         sm = "s%s" % eid
         em = "e%s" % eid
-        print self.vis_text.index(sm)
-        print self.vis_text.index(em)
+        print "Start M " + str(self.vis_text.index(sm))
+        print "End M " + str(self.vis_text.index(em))
         self.vis_text.delete(sm, em)     
         self.vis_text.insert(em, s)
         self.vis_text.see("insert")
